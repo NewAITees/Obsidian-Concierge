@@ -13,7 +13,6 @@ Obsidian Conciergeは、Obsidianユーザーのための知識管理アシスタ
 ## 🔧 技術スタック
 
 - **フロントエンド**: FastAPI（Pythonベースのウェブインターフェース）
-- **UI**: Gradio
 - **言語モデル**: Ollama（gemma3:27b）
 - **ベクターデータベース**: ChromaDB
 - **エージェントフレームワーク**: Agno
@@ -23,7 +22,7 @@ Obsidian Conciergeは、Obsidianユーザーのための知識管理アシスタ
 
 ```mermaid
 graph TD
-    A[ユーザー] -->|インタラクション| B[Gradioインターフェース]
+    A[ユーザー] -->|インタラクション| B[frontendインターフェース]
     B -->|検索クエリ| C[検索モジュール]
     B -->|質問| D[質問応答モジュール]
     B -->|処理タスク| E[タスク実行モジュール]
