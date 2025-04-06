@@ -1,0 +1,35 @@
+app:
+  name: "Obsidian Concierge"
+  version: "0.1.0"
+  vault_path: "/path/to/your/obsidian/vault"
+
+folder_structure:
+  - name: "Projects"
+    subfolders:
+      - "Active"
+      - "Archive"
+  - name: "Areas"
+    subfolders:
+      - "Health"
+      - "Finance"
+      - "Career"
+
+allowed_tags:
+  - project
+  - area
+  - resource
+
+logging:
+  level: "INFO"
+  file: "logs/obsidian_concierge.log"
+
+llm:
+  provider: "ollama"
+  model: "gemma3:27b"
+  temperature: 0.7
+  max_tokens: 2048
+
+database:
+  type: "chromadb"
+  persist_directory: "data/chromadb"
+  collection_name: "obsidian_vault" 
