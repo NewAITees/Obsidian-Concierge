@@ -1,0 +1,41 @@
+
+### 4. Specification Respect
+**Document: "API Contract Enforcement Guide"**
+
+This principle focuses on honoring interfaces and contracts:
+
+- **API Stability**: 
+  - *What it means*: Maintain backward compatibility.
+  - *How to implement*: Version APIs and avoid breaking changes.
+  - *Example*: Add new optional parameters rather than changing existing ones.
+  - *Why it matters*: Prevents breaking dependent applications when updating your code.
+
+- **Documentation-Driven Development**: 
+  - *What it means*: Write specifications before implementation.
+  - *How to implement*: Create API documentation or schemas first, then code to match.
+  - *Example*: Write OpenAPI/Swagger definitions before implementing endpoints.
+  - *Why it matters*: Ensures clear understanding of requirements before coding begins.
+
+- **Contract Programming**: 
+  - *What it means*: Define explicit preconditions and postconditions.
+  - *How to implement*: Check inputs at function entry and verify outputs before returning.
+  - *Example*: 
+    ```python
+    def divide(a: float, b: float) -> float:
+        """Divide a by b.
+        
+        Precondition: b != 0
+        Postcondition: result * b == a
+        """
+        assert b != 0, "Divisor cannot be zero"
+        result = a / b
+        assert math.isclose(result * b, a), "Division result inconsistent"
+        return result
+    ```
+  - *Why it matters*: Makes assumptions explicit and catches violations early.
+
+- **Specification Verification through Testing**: 
+  - *What it means*: Automatically verify compliance with specifications.
+  - *How to implement*: Write tests that validate conformance to requirements.
+  - *Example*: Create tests that verify API responses match documented schemas.
+  - *Why it matters*: Ensures the implementation actually meets specifications.

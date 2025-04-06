@@ -1,0 +1,28 @@
+### 1. Project Structure and Code Organization
+**Document: "Separation of Concerns Architecture Guide"**
+
+This principle focuses on how to organize your web application code in a way that makes it easier to understand, maintain, and extend:
+
+- **Clear Separation of Responsibilities**: 
+  - *What it means*: Divide your application into distinct modules, each handling a specific function.
+  - *How to implement*: Create separate files or folders for different aspects like data models, business logic, and user interface.
+  - *Example*: In a blog application, have separate modules for user authentication, article management, and comment handling.
+  - *Why it matters*: When a bug appears or a feature needs changing, you'll know exactly where to look.
+
+- **Maintain Small File Sizes**: 
+  - *What it means*: Keep individual files concise and focused.
+  - *How to implement*: Aim for files under 50-100KB or 500-1000 lines.
+  - *Example*: Instead of one massive `views.py` file, create multiple view files organized by feature.
+  - *Why it matters*: Smaller files are easier to understand, test, and modify without introducing bugs.
+
+- **"Walking Skeleton" Approach**: 
+  - *What it means*: Build a minimal but complete version of your application that works end-to-end early in development.
+  - *How to implement*: Start by implementing a simplified version of each component that can work together.
+  - *Example*: For an e-commerce site, create a basic product listing, simple cart, and checkout process before adding advanced features.
+  - *Why it matters*: This helps identify integration issues early and provides a foundation to build upon.
+
+- **Clear State Management**: 
+  - *What it means*: Be intentional about which parts of your application maintain state (data that changes over time).
+  - *How to implement*: Designate specific components or services for managing application state.
+  - *Example*: In a React application, decide which components will be stateful vs. stateless.
+  - *Why it matters*: Predictable state management reduces bugs and makes applications easier to debug.

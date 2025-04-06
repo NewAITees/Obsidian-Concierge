@@ -1,0 +1,29 @@
+
+### 2. Prompt Engineering
+**Document: "Versioned Prompt Design System"**
+
+This principle covers best practices for creating effective prompts for LLMs:
+
+- **Version-Controlled Templates**: 
+  - *What it means*: Track changes to prompts over time.
+  - *How to implement*: Store prompts in version-controlled files rather than hardcoding them.
+  - *Example*: Keep prompts in YAML files that are checked into Git.
+  - *Why it matters*: Allows tracking prompt performance over time and rolling back problematic changes.
+
+- **Context Optimization**: 
+  - *What it means*: Efficiently provide necessary information to LLMs.
+  - *How to implement*: Structure prompts to include relevant information without wasting tokens.
+  - *Example*: Instead of sending entire documents, extract and summarize the most relevant sections.
+  - *Why it matters*: Improves response quality and reduces token usage and latency.
+
+- **Testable Prompts**: 
+  - *What it means*: Objectively evaluate prompt effectiveness.
+  - *How to implement*: Create test cases with expected outputs for prompts.
+  - *Example*: Test a summarization prompt against various input texts and verify the outputs meet quality criteria.
+  - *Why it matters*: Ensures prompt changes actually improve system performance.
+
+- **Reusable Components**: 
+  - *What it means*: Create templates for common prompt patterns.
+  - *How to implement*: Develop a library of prompt fragments that can be composed together.
+  - *Example*: Have standard templates for "act as an expert in X" or "analyze this text for Y".
+  - *Why it matters*: Promotes consistency and best practices across prompts.

@@ -1,0 +1,44 @@
+
+### 2. Error Handling
+**Document: "Robust Error Management Protocol"**
+
+This principle covers how to properly handle errors:
+
+- **Specific Exception Types**: 
+  - *What it means*: Use purpose-specific exceptions rather than generic ones.
+  - *How to implement*: Create custom exception classes for different error cases.
+  - *Example*: 
+    ```python
+    class UserNotFoundError(Exception):
+        """Raised when a requested user doesn't exist."""
+        pass
+    ```
+  - *Why it matters*: Allows for more precise error handling and better debugging.
+
+- **Providing Error Context**: 
+  - *What it means*: Include helpful information with exceptions.
+  - *How to implement*: Add detailed messages and relevant data to exception objects.
+  - *Example*: 
+    ```python
+    raise ValidationError(f"Invalid user ID format: {user_id}. Expected integer, got {type(user_id).__name__}")
+    ```
+  - *Why it matters*: Makes debugging easier by providing relevant information.
+
+- **Recoverability Consideration**: 
+  - *What it means*: Design how the system should recover from different errors.
+  - *How to implement*: Categorize errors as recoverable or fatal and handle accordingly.
+  - *Example*: Retry on network errors but halt on data corruption.
+  - *Why it matters*: Creates more resilient applications that can handle real-world conditions.
+
+- **Logging**: 
+  - *What it means*: Record detailed information about errors.
+  - *How to implement*: Use structured logging to capture error details and context.
+  - *Example*: 
+    ```python
+    try:
+        process_order(order_id)
+    except OrderProcessingError as e:
+        logger.error("Order processing failed", 
+                    extra={"order_id": order_id, "error": str(e), "stack": traceback.format_exc()})
+    ```
+  - *Why it matters*: Provides vital information for troubleshooting and monitoring.

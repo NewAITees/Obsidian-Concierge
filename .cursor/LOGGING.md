@@ -1,0 +1,117 @@
+# 3. Logging
+**Document: "Structured Logging Framework"**
+
+This section covers best practices for application logging:
+
+## Structured Logs
+
+- **What it means**: Format logs in a way that machines can easily process.
+- **How to implement**: Use JSON or another structured format for log entries.
+- **Example**:
+  ```python
+  logger.info("User login", extra={"user_id": 12345, "source_ip": "192.168.1.1"})
+  ```
+- **Why it matters**: Makes logs searchable and analyzable by automated tools.
+
+## Appropriate Log Levels
+
+- **What it means**: Use different severity levels for different types of information.
+- **How to implement**: Assign DEBUG, INFO, WARNING, ERROR, and CRITICAL levels appropriately.
+- **Example**: Use INFO for routine operations, ERROR for failures, DEBUG for development details.
+- **Why it matters**: Allows filtering logs by importance and configuring verbosity.
+
+## Optimal Log Size Management
+
+- **What it means**: Ensure logs are neither too small (missing crucial info) nor too large (hard to analyze).
+- **How to implement**: Use rotation policies with appropriate size limits and retention periods.
+- **Example**:
+  ```python
+  # Configure a rotating file handler
+  handler = RotatingFileHandler('app.log', maxBytes=10*1024*1024, backupCount=5)
+  ```
+- **Why it matters**: Prevents logs from consuming too much disk space while retaining important information.
+
+## Log File Organization
+
+- **What it means**: Structure log files in a consistent, organized manner.
+- **How to implement**: Store logs in a dedicated `/logs` directory with clear naming conventions.
+- **Example**:
+  ```
+  /logs
+    /application
+      app-2025-04-06.log
+      app-2025-04-05.log
+    /error
+      error-2025-04-06.log
+    /access
+      access-2025-04-06.log
+  ```
+- **Why it matters**: Makes it easier to find specific logs when debugging issues.
+
+## Print vs Logger Usage
+
+- **What it means**: Choose the appropriate output method based on the situation.
+- **How to implement**: Use `print()` for development/debugging only; use proper logging for production.
+- **Example**:
+  ```python
+  # Development only
+  print(f"Debug: {variable}")  # Will be removed before production
+  
+  # Proper logging for all environments
+  logger.debug(f"Variable value: {variable}")
+  ```
+- **Why it matters**: Ensures developers can control what information is captured in production.
+
+## Overwrite vs Append Mode
+
+- **What it means**: Decide whether to replace or add to existing log files.
+- **How to implement**: Use overwrite mode for development logs; append mode for production audit trails.
+- **Example**:
+  ```python
+  # Overwrite mode for development
+  handler = FileHandler('dev.log', mode='w')
+  
+  # Append mode for production
+  handler = FileHandler('prod.log', mode='a')
+  ```
+- **Why it matters**: Overwrite mode keeps development logs clean and focused on current sessions.
+
+## AI-Friendly Logging Patterns
+
+- **What it means**: Structure logs to facilitate AI-based analysis.
+- **How to implement**: Include consistent patterns, timestamps, and machine-readable formats.
+- **Example**:
+  ```python
+  logger.info(
+      "API request processed",
+      extra={
+          "timestamp": time.time(),
+          "duration_ms": execution_time,
+          "endpoint": "/api/users",
+          "status_code": 200,
+          "user_agent": request.headers.get("User-Agent")
+      }
+  )
+  ```
+- **Why it matters**: Enables AI tools to detect patterns, anomalies, and potential issues.
+
+## Regular Log Analysis
+
+- **What it means**: Systematically review logs to identify issues and trends.
+- **How to implement**: Schedule regular log reviews and set up automated monitoring.
+- **Example**: Implement a daily script that summarizes error rates and slow operations.
+- **Why it matters**: Helps detect problems before they affect users and identifies optimization opportunities.
+
+## Contextual Information
+
+- **What it means**: Include relevant metadata with log entries.
+- **How to implement**: Add identifiers and context data to logs.
+- **Example**: Include request IDs, user IDs, or transaction IDs with related log entries.
+- **Why it matters**: Enables tracing related events across a distributed system.
+
+## Privacy Considerations
+
+- **What it means**: Handle sensitive information appropriately in logs.
+- **How to implement**: Redact, hash, or exclude sensitive data.
+- **Example**: Log `"Password changed for user: {user_id}"` instead of including the actual password.
+- **Why it matters**: Prevents security breaches and complies with privacy regulations.
