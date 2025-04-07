@@ -55,7 +55,7 @@ graph LR
     A --> C[バックエンド]
     A --> D[外部連携]
     
-    B --> B1[Gradio UI]
+    B --> B1[Webフロントエンド]
     B --> B2[ユーザー入力検証]
     B --> B3[結果表示]
     
@@ -201,6 +201,46 @@ async def test_search_integration(chroma_repository, temp_vault):
     assert len(results) > 0
     assert any("Python" in result.title for result in results)
     assert any("Python programming" in result.excerpt for result in results)
+```
+
+#### 統合テスト例（フロントエンド）
+
+```typescript
+// tests/frontend/integration/search.test.ts
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { SearchPage } from '@/pages/search';
+import { searchApi } from '@/api/search';
+import { mockSearchResults } from '@/mocks/search';
+
+jest.mock('@/api/search');
+
+describe('Search Integration Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should perform search and display results', async () => {
+    // APIモックのセットアップ
+    (searchApi.search as jest.Mock).mockResolvedValue(mockSearchResults);
+
+    // コンポーネントのレンダリング
+    render(<SearchPage />);
+
+    // 検索実行
+    const searchInput = screen.getByRole('textbox', { name: /search/i });
+    const searchButton = screen.getByRole('button', { name: /search/i });
+
+    fireEvent.change(searchInput, { target: { value: 'test query' } });
+    fireEvent.click(searchButton);
+
+    // 結果の検証
+    await waitFor(() => {
+      expect(screen.getByText(mockSearchResults[0].title)).toBeInTheDocument();
+    });
+
+    expect(searchApi.search).toHaveBeenCalledWith('test query');
+  });
+});
 ```
 
 ### 3.3 システムテスト
@@ -604,87 +644,4 @@ from obsidian_concierge.llm.ollama import OllamaClient
 from obsidian_concierge.llm.prompts import PromptTemplates
 
 @pytest.fixture
-def qa# Obsidian Concierge テスト計画
-
-このドキュメントでは、Obsidian Conciergeのテスト戦略、テスト範囲、実行計画について説明します。
-
-## 1. テスト戦略概要
-
-Obsidian Conciergeのテストは、以下のレベルで行います：
-
-```mermaid
-graph TD
-    A[テスト戦略] --> B[単体テスト]
-    A --> C[統合テスト]
-    A --> D[システムテスト]
-    A --> E[受け入れテスト]
-    
-    B --> B1[コアモジュール]
-    B --> B2[APIエンドポイント]
-    B --> B3[ユーティリティ関数]
-    
-    C --> C1[モジュール間連携]
-    C --> C2[外部サービス連携]
-    C --> C3[データフロー]
-    
-    D --> D1[機能テスト]
-    D --> D2[非機能テスト]
-    D --> D3[回帰テスト]
-    
-    E --> E1[ユーザーシナリオ検証]
-    E --> E2[デモシナリオ]
-```
-
-### 1.1 テスト目標
-
-- すべての主要機能が意図したとおりに動作することを確認する
-- バグや不具合を早期に発見して修正する
-- ユーザーエクスペリエンスが満足できるレベルであることを確認する
-- パフォーマンスと安定性の要件を満たしていることを検証する
-- システムがObsidianの既存ワークフローを尊重していることを確認する
-
-### 1.2 テスト環境
-
-| 環境 | 目的 | 構成 |
-|------|------|------|
-| 開発環境 | 単体テスト、統合テスト | 開発者マシン、モックデータ |
-| テスト環境 | システムテスト | テスト用Vault、完全なシステム構成 |
-| 本番環境 | 受け入れテスト | 実際のユーザーVault、実運用構成 |
-
-## 2. テスト範囲
-
-### 2.1 テスト対象コンポーネント
-
-```mermaid
-graph LR
-    A[テスト対象] --> B[フロントエンド]
-    A --> C[バックエンド]
-    A --> D[外部連携]
-    
-    B --> B1[Gradio UI]
-    B --> B2[ユーザー入力検証]
-    B --> B3[結果表示]
-    
-    C --> C1[API]
-    C --> C2[コアロジック]
-    C --> C3[データアクセス]
-    
-    D --> D1[Ollama連携]
-    D --> D2[ChromaDB連携]
-    D --> D3[ファイルシステム操作]
-```
-
-### 2.2 テスト対象外
-
-- Obsidianアプリケーション自体の機能
-- Ollamaの内部実装とモデルの品質
-- ユーザーのVault管理方法
-
-## 3. テスト種類と範囲
-
-### 3.1 単体テスト
-
-| モジュール | テスト内容 | 優先度 |
-|----------|----------|--------|
-| 検索機能 | 検索クエリ処理、結果整形 | 高 |
-| 質問応
+def qa

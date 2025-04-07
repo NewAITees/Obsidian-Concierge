@@ -1,3 +1,8 @@
+---
+description: Effective testing ensures your application works as expected
+globs: 
+alwaysApply: false
+---
 
 ### 5. Testing Strategy
 **Document: "Comprehensive Testing Framework"**

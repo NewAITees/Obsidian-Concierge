@@ -1,3 +1,8 @@
+---
+description: This section covers best practices for application logging
+globs: 
+alwaysApply: false
+---
 # 3. Logging
 **Document: "Structured Logging Framework"**
 

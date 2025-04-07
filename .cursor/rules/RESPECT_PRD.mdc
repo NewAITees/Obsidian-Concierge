@@ -1,3 +1,8 @@
+---
+description: This principle focuses on honoring interfaces and contracts
+globs: 
+alwaysApply: false
+---
 
 ### 4. Specification Respect
 **Document: "API Contract Enforcement Guide"**

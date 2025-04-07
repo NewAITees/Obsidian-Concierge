@@ -6,35 +6,142 @@ Obsidian Conciergeは、Obsidianユーザーのための知識管理アシスタ
 
 ## 2. 技術スタック
 
-- **フロントエンド**: FastAPI（Pythonベースのウェブインターフェース）
+- **フロントエンド**: React + TypeScript（モダンなWebインターフェース）
+- **バックエンド**: FastAPI（RESTful API）
 - **言語モデル**: Ollama（gemma3:27b）
 - **ベクターデータベース**: ChromaDB
 - **エージェントフレームワーク**: Agno
-- **プログラミング言語**: Python
+- **プログラミング言語**: Python, TypeScript
 
 ## 3. システムアーキテクチャ
 
 ```mermaid
 graph TD
-    A[ユーザー] -->|インタラクション| B[Gradioインターフェース]
-    B -->|検索クエリ| C[検索モジュール]
-    B -->|質問| D[質問応答モジュール]
-    B -->|処理タスク| E[タスク実行モジュール]
+    A[ユーザー] -->|インタラクション| B[Reactフロントエンド]
+    B -->|API呼び出し| C[FastAPI]
+    C -->|検索クエリ| D[検索モジュール]
+    C -->|質問| E[質問応答モジュール]
+    C -->|処理タスク| F[タスク実行モジュール]
     
-    C -->|ベクター検索| F[ChromaDB]
-    D -->|LLMクエリ| G[Ollama]
-    E -->|LLMタスク| G
+    D -->|ベクター検索| G[ChromaDB]
+    E -->|LLMクエリ| H[Ollama]
+    F -->|LLMタスク| H
     
-    F <-->|インデックス更新| H[Obsidian Vault]
-    E -->|ファイル操作| H
+    G <-->|インデックス更新| I[Obsidian Vault]
+    F -->|ファイル操作| I
     
-    I[設定ファイル] -->|構造定義| E
-    I -->|許可されたタグ| E
+    J[設定ファイル] -->|構造定義| F
+    J -->|許可されたタグ| F
 ```
 
 ## 4. 主要モジュール
 
-### 4.1. データインデックスモジュール
+### 4.1. フロントエンドモジュール
+
+ユーザーインターフェースとAPIとの通信を担当します。
+
+```typescript
+// src/api/client.ts
+interface ApiClient {
+  // 検索API
+  search(query: string): Promise<SearchResult[]>;
+  
+  // 質問応答API
+  askQuestion(question: string): Promise<string>;
+  
+  // ファイル移動API
+  moveFiles(): Promise<string[]>;
+  
+  // MOC生成API
+  generateMOC(topic: string): Promise<string>;
+  
+  // タグ付けAPI
+  suggestTags(filePath: string): Promise<string[]>;
+}
+
+// src/components/Search.tsx
+interface SearchProps {
+  onSearch: (query: string) => void;
+  results: SearchResult[];
+  isLoading: boolean;
+}
+
+const Search: React.FC<SearchProps> = ({ onSearch, results, isLoading }) => {
+  const [query, setQuery] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch(query);
+  };
+
+  return (
+    <div className="search-container">
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="検索キーワードを入力..."
+          className="search-input"
+        />
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? '検索中...' : '検索'}
+        </button>
+      </form>
+      
+      <div className="search-results">
+        {results.map((result) => (
+          <SearchResultCard key={result.id} result={result} />
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+### 4.2. バックエンドAPI
+
+RESTful APIエンドポイントを提供します。
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class SearchQuery(BaseModel):
+    query: str
+    limit: int = 10
+
+class QuestionQuery(BaseModel):
+    question: str
+
+@app.post("/api/search")
+async def search(query: SearchQuery):
+    try:
+        results = await search_service.search(query.query, limit=query.limit)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ask")
+async def ask_question(query: QuestionQuery):
+    try:
+        answer = await qa_service.answer_question(query.question)
+        return {"answer": answer}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/move-files")
+async def move_files():
+    try:
+        results = await file_service.process_pending_files()
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+### 4.3. データインデックスモジュール
 
 ファイルの読み込みとベクターDBへのインデックス作成を担当します。
 
@@ -74,7 +181,7 @@ FUNCTION インデックス作成(vault_path, db_client)
 END FUNCTION
 ```
 
-### 4.2. 検索モジュール
+### 4.4. 検索モジュール
 
 ユーザーのクエリに基づいて関連ドキュメントを検索します。
 
@@ -109,7 +216,7 @@ FUNCTION 検索実行(query_text, db_client, top_k=5)
 END FUNCTION
 ```
 
-### 4.3. 質問応答モジュール
+### 4.5. 質問応答モジュール
 
 LLMを利用して質問に回答します。
 
@@ -140,7 +247,7 @@ FUNCTION 質問応答(question, db_client, llm_client)
 END FUNCTION
 ```
 
-### 4.4. ファイル移動モジュール
+### 4.6. ファイル移動モジュール
 
 ファイルの内容を分析して適切な移動先を決定します。
 
@@ -214,7 +321,7 @@ FUNCTION 移動先決定(content, config, llm_client)
 END FUNCTION
 ```
 
-### 4.5. MOC生成モジュール
+### 4.7. MOC生成モジュール
 
 特定のトピックに関するMap of Content（MOC）を生成します。
 
@@ -257,7 +364,7 @@ FUNCTION MOC生成(topic, vault_path, db_client, llm_client)
 END FUNCTION
 ```
 
-### 4.6. タグ付けモジュール
+### 4.8. タグ付けモジュール
 
 ノートを分析して適切なタグを提案します。
 

@@ -1,3 +1,8 @@
+---
+description: This section covers general best practices for maintaining high-quality code:
+globs: 
+alwaysApply: false
+---
 
 ### 1. Code Quality
 **Document: "Consistent Code Quality Standards"**

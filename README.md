@@ -12,30 +12,32 @@ Obsidian Conciergeは、Obsidianユーザーのための知識管理アシスタ
 
 ## 🔧 技術スタック
 
-- **フロントエンド**: FastAPI（Pythonベースのウェブインターフェース）
+- **フロントエンド**: React + TypeScript（モダンなWebインターフェース）
+- **バックエンド**: FastAPI（RESTful API）
 - **言語モデル**: Ollama（gemma3:27b）
 - **ベクターデータベース**: ChromaDB
 - **エージェントフレームワーク**: Agno
-- **プログラミング言語**: Python
+- **プログラミング言語**: Python, TypeScript
 
 ## 📋 システムアーキテクチャ
 
 ```mermaid
 graph TD
-    A[ユーザー] -->|インタラクション| B[frontendインターフェース]
-    B -->|検索クエリ| C[検索モジュール]
-    B -->|質問| D[質問応答モジュール]
-    B -->|処理タスク| E[タスク実行モジュール]
+    A[ユーザー] -->|インタラクション| B[Reactフロントエンド]
+    B -->|API呼び出し| C[FastAPI]
+    C -->|検索クエリ| D[検索モジュール]
+    C -->|質問| E[質問応答モジュール]
+    C -->|処理タスク| F[タスク実行モジュール]
     
-    C -->|ベクター検索| F[ChromaDB]
-    D -->|LLMクエリ| G[Ollama]
-    E -->|LLMタスク| G
+    D -->|ベクター検索| G[ChromaDB]
+    E -->|LLMクエリ| H[Ollama]
+    F -->|LLMタスク| H
     
-    F <-->|インデックス更新| H[Obsidian Vault]
-    E -->|ファイル操作| H
+    G <-->|インデックス更新| I[Obsidian Vault]
+    F -->|ファイル操作| I
     
-    I[設定ファイル] -->|構造定義| E
-    I -->|許可されたタグ| E
+    J[設定ファイル] -->|構造定義| F
+    J -->|許可されたタグ| F
 ```
 
 ## 🚀 インストールと設定
@@ -43,6 +45,7 @@ graph TD
 ### 前提条件
 
 - Python 3.10+
+- Node.js 18+
 - Ollama（gemma3:27bモデルがインストール済み）
 - Obsidian Vault
 
@@ -50,39 +53,40 @@ graph TD
 
 1. リポジトリをクローン:
    ```bash
-   git clone https://github.com/yourusername/obsidian-concierge.git
+   git clone https://github.com/NewAITees/Obsidian-Concierge
    cd obsidian-concierge
    ```
 
-2. 依存関係をインストール:
+2. バックエンド依存関係をインストール:
    ```bash
-   pip install -r requirements.txt
+   poetry install
    ```
 
-3. 設定ファイルを作成:
+3. フロントエンド依存関係をインストール:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+4. 設定ファイルを作成:
    ```bash
    cp config.example.yaml config.yaml
    ```
 
-4. `config.yaml` を編集して Vault パスなどを設定
+5. `config.yaml` を編集して Vault パスなどを設定
 
 ### 起動方法
 
 ```bash
-
-# Poetryで依存関係をインストール
-poetry install
-
-# 設定ファイルを作成
-cp config.example.yaml config.yaml
-# config.yamlを編集してVaultパスなどを設定
-
-# アプリケーションを起動
+# バックエンドを起動
 poetry run python -m obsidian_concierge
 
+# 別のターミナルでフロントエンドを起動
+cd frontend
+npm run dev
 ```
 
-ブラウザで http://localhost:7860 にアクセスしてWebインターフェースを利用できます。
+ブラウザで http://localhost:3000 にアクセスしてWebインターフェースを利用できます。
 
 ## 🔍 機能の詳細
 
@@ -205,4 +209,5 @@ MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してくださ�
 - [Obsidian](https://obsidian.md/) - 素晴らしい知識管理ツールを提供してくれているチーム
 - [Ollama](https://ollama.ai/) - ローカルLLMの実行を容易にしてくれているプロジェクト
 - [ChromaDB](https://www.trychroma.com/) - 高性能なベクターデータベース
-- [Gradio](https://www.gradio.app/) - 直感的なUIコンポーネント
+- [React](https://reactjs.org/) - モダンなWebフロントエンド開発を可能にするライブラリ
+- [FastAPI](https://fastapi.tiangolo.com/) - 高性能なPython Web APIフレームワーク

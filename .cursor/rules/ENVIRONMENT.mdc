@@ -1,3 +1,8 @@
+---
+description: This principle focuses on setting up the environment properly before working with LLMs
+globs: 
+alwaysApply: false
+---
 Mise en Plus
 
 ### 3. Mise en Plus (Preparation and Environment Setup)

@@ -1,3 +1,8 @@
+---
+description: This principle focuses on how to organize your web application code in a way that makes it easier to understand, maintain, and extend:
+globs: 
+alwaysApply: false
+---
 ### 1. Project Structure and Code Organization
 **Document: "Separation of Concerns Architecture Guide"**
 

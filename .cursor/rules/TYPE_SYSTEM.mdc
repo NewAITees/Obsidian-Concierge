@@ -1,3 +1,8 @@
+---
+description: Using type systems helps catch errors early and makes code more self-documenting
+globs: 
+alwaysApply: false
+---
 
 ### 2. Leveraging Type Systems
 **Document: "Static Typing Best Practices"**

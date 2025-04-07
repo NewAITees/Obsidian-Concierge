@@ -1,3 +1,8 @@
+---
+description: This principle addresses how to manage the limited context window of LLMs:
+globs: 
+alwaysApply: false
+---
 
 ### 5. Memory and State Management
 **Document: "LLM Context Management System"**

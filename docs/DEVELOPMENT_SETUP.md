@@ -7,7 +7,9 @@
 開発を始める前に、以下のソフトウェアがインストールされていることを確認してください：
 
 - **Python 3.10以上**: [Python公式サイト](https://www.python.org/downloads/)からダウンロード
-- **Poetry 1.6.0以上**: 依存関係管理ツール
+- **Node.js 18以上**: [Node.js公式サイト](https://nodejs.org/)からダウンロード
+- **Poetry 1.6.0以上**: Python依存関係管理ツール
+- **pnpm 8以上**: Node.js依存関係管理ツール（推奨）
 - **Git**: バージョン管理システム
 - **Ollama**: ローカルLLMを実行するためのツール（gemma3:27bモデルが必要）
 
@@ -32,21 +34,38 @@ curl -sSL https://install.python-poetry.org | python3 -
 poetry --version
 ```
 
-### 2. リポジトリのクローンとセットアップ
+### 2. pnpm のインストール
+
+pnpm がまだインストールされていない場合は、以下のコマンドでインストールします：
+
+```bash
+# npmを使用してインストール
+npm install -g pnpm
+
+# インストールの確認
+pnpm --version
+```
+
+### 3. リポジトリのクローンとセットアップ
 
 ```bash
 # リポジトリのクローン
 git clone https://github.com/yourusername/obsidian-concierge.git
 cd obsidian-concierge
 
-# 依存関係のインストール
+# バックエンド依存関係のインストール
 poetry install
 
-# 仮想環境の有効化
+# フロントエンド依存関係のインストール
+cd frontend
+pnpm install
+cd ..
+
+# バックエンド仮想環境の有効化
 poetry shell
 ```
 
-### 3. Ollama のセットアップ
+### 4. Ollama のセットアップ
 
 Ollamaをまだインストールしていない場合は、[Ollama公式サイト](https://ollama.ai/download)からインストールしてください。
 
@@ -60,11 +79,16 @@ ollama pull gemma3:27b
 ollama list
 ```
 
-### 4. 設定ファイルの作成
+### 5. 設定ファイルの作成
 
 ```bash
-# 設定ファイルテンプレートをコピー
+# バックエンド設定ファイルテンプレートをコピー
 cp config.example.yaml config.yaml
+
+# フロントエンド環境変数ファイルをコピー
+cd frontend
+cp .env.example .env.local
+cd ..
 ```
 
 `config.yaml` を編集して、以下の設定を行います：
@@ -74,6 +98,10 @@ app:
   name: "Obsidian Concierge"
   version: "0.1.0"
   vault_path: "/path/to/your/obsidian/vault"  # あなたのObsidian Vaultのパスに変更
+  api:
+    host: "localhost"
+    port: 8000
+    cors_origins: ["http://localhost:3000"]  # フロントエンドのURL
 
 folder_structure:
   - name: "Projects"
@@ -94,28 +122,43 @@ allowed_tags:
   # 必要に応じて追加
 ```
 
-### 5. 開発サーバーの起動
+`frontend/.env.local` を編集して、以下の設定を行います：
 
-以下のコマンドで開発サーバーを起動します：
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+### 6. 開発サーバーの起動
+
+別々のターミナルで以下のコマンドを実行します：
 
 ```bash
+# ターミナル1: バックエンドサーバーの起動
 # Poetry環境内で
 python -m obsidian_concierge
 
 # または
 poetry run python -m obsidian_concierge
+
+# ターミナル2: フロントエンドの開発サーバーを起動
+cd frontend
+pnpm dev
 ```
 
-ブラウザで http://localhost:7860 にアクセスしてUIを開きます。
+ブラウザで http://localhost:3000 にアクセスしてUIを開きます。
 
 ## 開発ワークフロー
 
 ```mermaid
 graph TD
-    A[コード編集] --> B[リンター・フォーマッター実行]
-    B --> C[テスト実行]
-    C --> D[ローカルサーバー起動]
-    D --> E[機能テスト]
+    A[コード編集] --> B1[バックエンド: リンター・フォーマッター実行]
+    A --> B2[フロントエンド: ESLint・Prettier実行]
+    B1 --> C1[バックエンドテスト実行]
+    B2 --> C2[フロントエンドテスト実行]
+    C1 --> D1[バックエンドサーバー起動]
+    C2 --> D2[フロントエンドサーバー起動]
+    D1 --> E[機能テスト]
+    D2 --> E
     E --> F{動作確認}
     F -->|OK| G[コミット]
     F -->|NG| A
@@ -124,6 +167,7 @@ graph TD
 
 ### コード品質チェック
 
+#### バックエンド
 ```bash
 # コードフォーマット
 poetry run black obsidian_concierge tests
@@ -138,8 +182,22 @@ poetry run mypy obsidian_concierge
 poetry run flake8 obsidian_concierge tests
 ```
 
+#### フロントエンド
+```bash
+# コードフォーマット
+cd frontend
+pnpm format
+
+# リンター
+pnpm lint
+
+# 型チェック
+pnpm type-check
+```
+
 ### テストの実行
 
+#### バックエンド
 ```bash
 # すべてのテストを実行
 poetry run pytest
@@ -148,34 +206,58 @@ poetry run pytest
 poetry run pytest --cov=obsidian_concierge
 ```
 
+#### フロントエンド
+```bash
+cd frontend
+# すべてのテストを実行
+pnpm test
+
+# カバレッジレポート付きでテストを実行
+pnpm test:coverage
+```
+
 ## フォルダ構造
 
 ```
 /obsidian-concierge/
-├── obsidian_concierge/            # メインのソースコード
+├── obsidian_concierge/            # バックエンドのソースコード
 │   ├── __init__.py
 │   ├── api/                       # API関連コード
 │   ├── core/                      # コア機能
 │   ├── db/                        # データベース関連
 │   ├── llm/                       # LLM連携機能
 │   ├── utils/                     # ユーティリティ
-│   ├── app.py                     # アプリケーションエントリーポイント
-│   └── ui.py                      # Gradio UI定義
-├── tests/                         # テストコード
+│   └── app.py                     # アプリケーションエントリーポイント
+├── frontend/                      # フロントエンドのソースコード
+│   ├── src/
+│   │   ├── api/                  # APIクライアント
+│   │   ├── components/           # Reactコンポーネント
+│   │   ├── hooks/               # カスタムフック
+│   │   ├── pages/               # ページコンポーネント
+│   │   ├── styles/              # スタイルシート
+│   │   ├── types/               # 型定義
+│   │   ├── utils/               # ユーティリティ関数
+│   │   ├── App.tsx              # ルートコンポーネント
+│   │   └── main.tsx             # エントリーポイント
+│   ├── public/                   # 静的ファイル
+│   ├── index.html               # HTMLテンプレート
+│   ├── package.json             # npm設定
+│   ├── tsconfig.json            # TypeScript設定
+│   └── vite.config.ts           # Vite設定
+├── tests/                         # バックエンドテストコード
 │   ├── __init__.py
-│   ├── conftest.py                # テスト用フィクスチャ
-│   ├── test_api/                  # APIテスト
-│   ├── test_core/                 # コア機能テスト
-│   ├── test_db/                   # データベーステスト
-│   └── test_llm/                  # LLM連携テスト
+│   ├── conftest.py               # テスト用フィクスチャ
+│   ├── test_api/                 # APIテスト
+│   ├── test_core/                # コア機能テスト
+│   ├── test_db/                  # データベーステスト
+│   └── test_llm/                 # LLM連携テスト
 ├── docs/                          # ドキュメント
 └── ...
 ```
 
 ## 依存関係の管理
 
-新しい依存関係を追加する場合：
-
+### バックエンド
 ```bash
 # 本番環境の依存関係
 poetry add package-name
@@ -185,6 +267,20 @@ poetry add --group dev package-name
 
 # 依存関係の更新
 poetry update
+```
+
+### フロントエンド
+```bash
+cd frontend
+
+# 本番環境の依存関係
+pnpm add package-name
+
+# 開発環境のみの依存関係
+pnpm add -D package-name
+
+# 依存関係の更新
+pnpm update
 ```
 
 ## よくある問題と解決策
@@ -226,21 +322,14 @@ poetry add chromadb
 chmod -R 755 /path/to/your/vault
 ```
 
-### 問題: Gradioのインターフェースが表示されない
+### 問題: CORSエラー
 
-**症状**: ブラウザでローカルホストに接続できない
+**症状**: ブラウザコンソールにCORSエラーが表示される
 
 **解決策**:
-1. アプリケーションが起動しているか確認
-2. ポートが別のアプリケーションで使用されていないか確認
-```bash
-# Linuxの場合
-netstat -tuln | grep 7860
-```
-3. 必要に応じて別のポートを指定して起動
-```bash
-python -m obsidian_concierge --port 7861
-```
+1. `config.yaml`のCORS設定を確認
+2. フロントエンドの環境変数が正しく設定されているか確認
+3. バックエンドとフロントエンドのポートが一致しているか確認
 
 ## 開発環境のカスタマイズ
 
