@@ -19,7 +19,7 @@ class LogConfig(BaseModel):
     """Configuration model for logging settings."""
     
     LOGGER_NAME: str = "obsidian_concierge"
-    LOG_FORMAT: str = "%(levelprefix)s | %(asctime)s | %(message)s"
+    LOG_FORMAT: str = "%(levelname)s | %(asctime)s | %(message)s"
     LOG_LEVEL: str = "INFO"
     LOG_FILE: Optional[str] = None
     LOG_FILE_MAX_BYTES: int = 10 * 1024 * 1024  # 10MB

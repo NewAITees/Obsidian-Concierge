@@ -15,7 +15,7 @@ def chroma_repo():
     repo = ChromaRepository(collection_name=f"test_collection_{uuid.uuid4()}")
     yield repo
     # Cleanup
-    repo.collection.delete()
+    repo.client.delete_collection(repo.collection.name)
 
 
 @pytest.fixture
