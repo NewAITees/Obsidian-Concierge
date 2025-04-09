@@ -391,6 +391,7 @@ def main(args: Optional[List[str]] = None) -> int:
                 
                 os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
                 with open(args.output, 'w', encoding='utf-8') as f:
+                    import json
                     json.dump(save_data, f, indent=2, ensure_ascii=False)
                 print(f"分析結果を保存しました: {args.output}")
             
