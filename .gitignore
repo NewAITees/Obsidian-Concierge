@@ -216,3 +216,6 @@ tmp/
 # Obsidian
 .obsidian/
 .trash/
+
+
+test_vault/

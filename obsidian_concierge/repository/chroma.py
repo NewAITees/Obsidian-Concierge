@@ -2,9 +2,10 @@
 ChromaDB repository implementation for vector search functionality.
 
 This module provides a wrapper around ChromaDB for document storage and retrieval.
+Located in the repository package for better organization.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import logging
 import chromadb
@@ -50,6 +51,103 @@ class ChromaRepository:
         )
         
         logger.info(f"Initialized ChromaRepository with collection '{collection_name}'")
+    
+    async def search(
+        self,
+        query: str,
+        limit: Optional[int] = 10,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """Search for documents similar to the query.
+        
+        Args:
+            query: Search query
+            limit: Maximum number of results to return
+            filters: Optional metadata filters
+            
+        Returns:
+            List of search results with metadata
+        """
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=limit,
+                where=filters
+            )
+            
+            # Format results
+            formatted_results = []
+            for i in range(len(results["ids"][0])):
+                result = {
+                    "id": results["ids"][0][i],
+                    "text": results["documents"][0][i],
+                    "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
+                    "score": results["distances"][0][i] if "distances" in results else None
+                }
+                formatted_results.append(result)
+            
+            logger.info(f"Found {len(formatted_results)} results for query: {query}")
+            return formatted_results
+            
+        except Exception as e:
+            logger.error(f"Search failed: {str(e)}")
+            raise
+    
+    async def find_similar(
+        self,
+        document_id: str,
+        limit: Optional[int] = 5
+    ) -> List[Tuple[Document, float]]:
+        """Find documents similar to a given document.
+        
+        Args:
+            document_id: ID of the document to find similar ones for
+            limit: Maximum number of similar documents to return
+            
+        Returns:
+            List of tuples containing (Document, similarity_score)
+            
+        Raises:
+            ValueError: If document not found
+            Exception: If similarity search fails
+        """
+        try:
+            # Get the source document first
+            source_results = self.collection.get(
+                ids=[document_id]
+            )
+            
+            if not source_results["documents"]:
+                raise ValueError(f"Document not found: {document_id}")
+                
+            # Use the document content to find similar ones
+            source_text = source_results["documents"][0]
+            results = self.collection.query(
+                query_texts=[source_text],
+                n_results=limit + 1  # Add 1 to account for the source document
+            )
+            
+            # Format results, excluding the source document
+            similar_docs = []
+            for i in range(len(results["ids"][0])):
+                if results["ids"][0][i] != document_id:  # Skip the source document
+                    doc = Document(
+                        id=results["ids"][0][i],
+                        content=results["documents"][0][i],
+                        metadata=results["metadatas"][0][i] if results["metadatas"] else {}
+                    )
+                    score = results["distances"][0][i] if "distances" in results else 0.0
+                    similar_docs.append((doc, score))
+            
+            logger.info(f"Found {len(similar_docs)} similar documents for {document_id}")
+            return similar_docs[:limit]  # Ensure we return at most 'limit' documents
+            
+        except ValueError as e:
+            logger.error(f"Document not found: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Error finding similar documents: {str(e)}")
+            raise
     
     def add_documents(self, documents: List[Document]) -> None:
         """Add documents to the vector store.

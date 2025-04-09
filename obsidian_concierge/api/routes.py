@@ -16,7 +16,7 @@ from ..repository.chroma import ChromaRepository
 router = APIRouter()
 
 # Initialize services
-repo = ChromaRepository()
+repo = ChromaRepository(collection_name="obsidian_vault")
 search_service = SearchService(repo)
 qa_service = QAService(repo)
 

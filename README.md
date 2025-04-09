@@ -1,86 +1,82 @@
 # Obsidian Concierge
 
-Obsidian Conciergeは、Obsidianナレッジベースを効率的に管理・活用するためのAIパワードアシスタントです。LLMを活用して、ナレッジベースの整理、検索、分析をサポートします。
+Obsidian Conciergeは、Obsidianノートの管理と分析を支援するPythonベースのツールです。AIを活用して、ノートの整理、検索、分析を効率化します。
 
-## 特徴
+## 機能
 
-- 🤖 高度なLLM統合による知識ベースの理解と活用
-- 📚 効率的なナレッジベース管理と整理
-- 🔍 コンテキストを考慮した高度な検索機能
-- 📊 知識の関連性分析とビジュアライゼーション
-- 🛠️ カスタマイズ可能なワークフロー
+- ノートの自動分類と整理
+- AIを活用したコンテンツ分析
+- 高度な検索機能
+- メタデータの自動生成と管理
 
 ## 必要条件
 
-- Python 3.10以上
-- Poetry（依存関係管理）
-- Ollama（LLMサービス）
+- Python 3.8以上
+- Obsidianがインストールされていること
+- OpenAI APIキー（オプション）
 
-## セットアップ
+## インストール
 
-1. リポジトリのクローン:
+```bash
+pip install obsidian-concierge
+```
+
+または、ソースからインストール：
+
 ```bash
 git clone https://github.com/yourusername/obsidian-concierge.git
 cd obsidian-concierge
+pip install -e .
 ```
 
-2. 依存関係のインストール:
-```bash
-poetry install
-```
+## 設定
 
-3. 環境変数の設定:
+1. `.env.example`を`.env`にコピーして必要な設定を行います：
+
 ```bash
 cp .env.example .env
-# .envファイルを編集して必要な設定を行う
 ```
 
-4. Ollamaのセットアップ:
-- [Ollama](https://ollama.ai/)をインストール
-- 必要なモデルをダウンロード:
-```bash
-ollama pull mistral
-```
+2. `.env`ファイルを編集して、必要な環境変数を設定します：
+   - `VAULT_PATH`: Obsidianボールトのパス
+   - `OPENAI_API_KEY`: OpenAI APIキー（オプション）
+   - その他の設定項目
 
 ## 使用方法
 
-1. アプリケーションの起動:
-```bash
-poetry run python -m obsidian_concierge
-```
+基本的な使用方法：
 
-2. APIエンドポイントの確認:
 ```bash
-curl http://localhost:8000/docs
+obsidian-concierge --help
 ```
 
 ## 開発
 
-### テストの実行
+開発用の依存関係をインストール：
 
 ```bash
-poetry run pytest
+pip install -e ".[dev]"
 ```
 
-### リンター・フォーマッターの実行
+テストの実行：
 
 ```bash
-poetry run black .
-poetry run flake8
-poetry run mypy .
+pytest
 ```
-
-## プロジェクト構造
-
-詳細なプロジェクト構造については[ARCHITECTURE.md](docs/ARCHITECTURE.md)を参照してください。
 
 ## ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
+MITライセンス
 
-## コントリビューション
+## 貢献
 
-プロジェクトへの貢献を歓迎します。Issue報告や機能提案、プルリクエストなど、どのような形での貢献も大歓迎です。
+プロジェクトへの貢献を歓迎します。以下の手順で貢献できます：
+
+1. このリポジトリをフォーク
+2. 新しいブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
 
 ## サポート
 

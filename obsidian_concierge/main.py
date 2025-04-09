@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .utils.config import AppConfig, load_config
 from .utils.logging import LogConfig, setup_logging
+from .api.routes import router as api_router
 
 # Load configuration
 config = load_config()
@@ -37,6 +38,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+# Include API routes
+app.include_router(api_router, prefix="/api/v1")
 
 # Health check endpoint
 @app.get("/health")

@@ -1,110 +1,77 @@
 """
-Question Answering service for Obsidian Concierge.
+Question answering service.
 
-This module provides question answering functionality using LLMs and vector search.
+This module provides functionality for answering questions using the indexed vault content.
 """
 
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Tuple
+
 from ..repository.chroma import ChromaRepository
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
+from ..llm.ollama import OllamaClient
 
 class QAService:
-    """Service for handling question answering operations."""
+    """Question answering service."""
     
-    def __init__(self, repository: ChromaRepository):
-        """
-        Initialize QAService.
-        
-        Args:
-            repository: ChromaRepository instance for context retrieval
-        """
-        self.repository = repository
-        self.llm = ChatOpenAI(
-            model_name="gpt-4-turbo-preview",
-            temperature=0.7
-        )
-        
-        # Define QA prompt template
-        self.qa_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a helpful assistant that answers questions based on the provided context.
-            Use only the information from the context to answer the question.
-            If you cannot find the answer in the context, say so.
-            Always cite your sources using the metadata provided."""),
-            ("user", "Context:\n{context}\n\nQuestion: {question}")
-        ])
-        
-        self.qa_chain = LLMChain(
-            llm=self.llm,
-            prompt=self.qa_prompt
-        )
+    def __init__(self, repo: ChromaRepository):
+        """Initialize the service."""
+        self.repo = repo
+        self.llm = OllamaClient()
     
-    async def get_answer(
+    async def answer_question(
         self,
         question: str,
         context_size: Optional[int] = 3,
         temperature: Optional[float] = 0.7
-    ) -> Tuple[str, List[Dict[str, Any]]]:
+    ) -> Tuple[str, List[dict], float]:
         """
-        Answer a question using retrieved context.
+        Answer a question using the indexed vault content.
         
         Args:
             question: Question to answer
-            context_size: Number of documents to use as context
-            temperature: LLM temperature for answer generation
+            context_size: Number of context documents to use
+            temperature: Temperature for response generation
             
         Returns:
-            Tuple of (answer, context_documents)
-            
-        Raises:
-            ValueError: If question is empty or invalid
-            Exception: If QA operation fails
+            Tuple of (answer, context, confidence)
         """
-        if not question.strip():
-            raise ValueError("Question cannot be empty")
-            
-        try:
-            # Get relevant context
-            context_docs = await self.repository.search(
-                query=question,
-                limit=context_size
-            )
-            
-            # Format context for prompt
-            context_text = "\n\n".join([
-                f"Document {i+1}:\n{doc.page_content}\nSource: {doc.metadata.get('source', 'Unknown')}"
-                for i, (doc, _) in enumerate(context_docs)
-            ])
-            
-            # Update LLM temperature
-            self.llm.temperature = temperature
-            
-            # Generate answer
-            response = await self.qa_chain.arun(
-                context=context_text,
-                question=question
-            )
-            
-            # Format context documents for return
-            formatted_context = []
-            for doc, score in context_docs:
-                formatted_context.append({
-                    "content": doc.page_content,
-                    "metadata": doc.metadata,
-                    "score": float(score)
-                })
-            
-            return response.strip(), formatted_context
-            
-        except Exception as e:
-            raise Exception(f"Question answering failed: {str(e)}")
-            
+        # Get relevant context from repository
+        context = await self.repo.search(
+            query=question,
+            limit=context_size
+        )
+        
+        # Format context for LLM
+        context_text = "\n\n".join([
+            f"Document: {doc['metadata']['title']}\n{doc['text']}"
+            for doc in context
+        ])
+        
+        # Generate answer
+        prompt = f"""Based on the following context, answer the question.
+        If you cannot answer the question based on the context, say so.
+        
+        Context:
+        {context_text}
+        
+        Question: {question}
+        
+        Answer:"""
+        
+        answer = await self.llm.generate(
+            prompt=prompt,
+            temperature=temperature
+        )
+        
+        # Simple confidence score based on context relevance
+        confidence = 0.8  # TODO: Implement proper confidence scoring
+        
+        return answer, context, confidence
+
     async def get_follow_up_questions(
         self,
         question: str,
         answer: str,
-        context: List[Dict[str, Any]],
+        context: List[dict],
         num_questions: Optional[int] = 3
     ) -> List[str]:
         """
@@ -144,7 +111,7 @@ class QAService:
             
             # Format context
             context_text = "\n".join([
-                doc["content"] for doc in context
+                doc["text"] for doc in context
             ])
             
             # Generate questions

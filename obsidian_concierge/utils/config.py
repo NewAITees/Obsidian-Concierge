@@ -17,11 +17,11 @@ class AppConfig(BaseModel):
     """Application configuration model."""
     
     # Server settings
-    HOST: str = Field(default="127.0.0.1", description="Server host")
-    PORT: int = Field(default=8000, description="Server port")
+    HOST: str = Field(env="APP_HOST", default="localhost", description="Server host")
+    PORT: int = Field(env="APP_PORT", default=8000, description="Server port")
     
     # Logging settings
-    LOG_LEVEL: str = Field(default="INFO", description="Logging level")
+    LOG_LEVEL: str = Field(env="LOG_LEVEL", default="INFO", description="Logging level")
     LOG_FILE: str = Field(default="app.log", description="Log file path")
     LOG_FORMAT: str = Field(
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -38,16 +38,19 @@ class AppConfig(BaseModel):
     
     # ChromaDB settings
     CHROMA_DB_DIR: str = Field(
+        env="CHROMA_DB_DIR",
         default="data/chromadb",
         description="Directory for ChromaDB persistence"
     )
     CHROMA_COLLECTION_NAME: str = Field(
+        env="CHROMA_DB_COLLECTION",
         default="obsidian_notes",
         description="Name of the ChromaDB collection"
     )
     
     # Vault settings
     VAULT_PATH: str = Field(
+        env="OBSIDIAN_VAULT_PATH",
         default="vault",
         description="Path to Obsidian vault"
     )
@@ -55,6 +58,10 @@ class AppConfig(BaseModel):
         default=100,
         description="Number of documents to process in each indexing batch"
     )
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
 
 
 def load_config(config_path: Optional[str] = None) -> AppConfig:
@@ -78,12 +85,7 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         with open(config_path, 'r') as f:
             config_data = yaml.safe_load(f) or {}
     
-    # Override with environment variables
-    for field in AppConfig.__fields__:
-        env_value = os.getenv(field)
-        if env_value is not None:
-            config_data[field] = env_value
-    
+    # Create config instance (environment variables will be loaded automatically)
     return AppConfig(**config_data)
 
 
