@@ -181,3 +181,38 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Project specific
+data/
+logs/
+*.log
+chroma_db/
+.chroma/
+temp/
+tmp/
+
+# Obsidian
+.obsidian/
+.trash/
