@@ -13,9 +13,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union, get_type_hints
 from pathlib import Path
 
 # 既存のツールをインポート
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from snippet.validator import Validator, ValidationError
-from snippet.test_data_generator import TestDataGenerator
+from ..validator import Validator, ValidationError
+from ..test_data_generator import TestDataGenerator
 
 # 型ヒントの解決に必要なモジュール
 try:

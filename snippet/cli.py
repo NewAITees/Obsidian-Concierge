@@ -9,15 +9,17 @@ import sys
 import argparse
 import importlib.util
 import json
+import concurrent.futures
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
+from tqdm import tqdm
 
 # 元のモジュールをインポート
-from analytics.code_analyzer import CodeAnalyzer, analyze_file, analyze_directory
-from analytics.report_generator import generate_report, save_report
+from .analytics.code_analyzer import CodeAnalyzer, analyze_file, analyze_directory
+from .analytics.report_generator import generate_report, save_report
 
 # 関数検証機能をインポート
-from analytics.validator_integration import validate_functions
+from .analytics.validator_integration import validate_functions
 
 
 def generate_enhanced_report(
@@ -207,6 +209,69 @@ def _generate_validator_report(results: Dict[str, Any], format: str = 'markdown'
         return f"サポートされていないフォーマット: {format}"
 
 
+def analyze_files_parallel(files: List[str], 
+                         max_lines: int = 100, 
+                         max_nest_level: int = 4,
+                         max_workers: int = None) -> Dict[str, Any]:
+    """
+    複数のファイルを並列で分析
+
+    Args:
+        files: 分析するファイルのリスト
+        max_lines: 関数の最大行数閾値
+        max_nest_level: 最大ネストレベル閾値
+        max_workers: 並列処理の最大ワーカー数（Noneの場合はCPUコア数）
+
+    Returns:
+        分析結果の辞書
+    """
+    results = {
+        "files": {},
+        "timestamp": None,
+        "summary": {
+            "file_count": len(files),
+            "complexity_issues": 0,
+            "files_with_issues": 0,
+            "quality_checks_passed": True
+        }
+    }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_file = {
+            executor.submit(
+                analyze_file, 
+                file_path,
+                max_lines=max_lines,
+                max_nest_level=max_nest_level
+            ): file_path for file_path in files
+        }
+
+        with tqdm(total=len(files), desc="Analyzing files") as pbar:
+            for future in concurrent.futures.as_completed(future_to_file):
+                file_path = future_to_file[future]
+                try:
+                    file_result = future.result()
+                    results["files"][file_path] = file_result
+                    
+                    # サマリー更新
+                    if file_result.get("complexity", {}).get("issue_count", 0) > 0:
+                        results["summary"]["complexity_issues"] += 1
+                        results["summary"]["files_with_issues"] += 1
+                    if not file_result.get("quality", {}).get("passed", True):
+                        results["summary"]["quality_checks_passed"] = False
+                        
+                except Exception as e:
+                    print(f"Error analyzing {file_path}: {str(e)}")
+                    results["files"][file_path] = {
+                        "error": str(e),
+                        "file_path": file_path
+                    }
+                finally:
+                    pbar.update(1)
+
+    return results
+
+
 def main(args: Optional[List[str]] = None) -> int:
     """
     コマンドライン実行のメインエントリーポイント
@@ -233,12 +298,15 @@ def main(args: Optional[List[str]] = None) -> int:
     analyze_parser.add_argument("--patterns", "-p", nargs="+", default=["*.py"], help="分析するファイルパターン")
     analyze_parser.add_argument("--max-lines", type=int, default=100, help="関数の最大行数閾値")
     analyze_parser.add_argument("--max-nest", type=int, default=4, help="最大ネストレベル閾値")
+    analyze_parser.add_argument("--max-workers", type=int, help="並列処理の最大ワーカー数")
     analyze_parser.add_argument("--output", "-o", help="結果を保存するJSONファイル")
     analyze_parser.add_argument("--report", help="分析レポートを保存するファイル")
     analyze_parser.add_argument("--format", "-f", choices=['markdown', 'html', 'json'], 
                               default='markdown', help="レポート形式")
     analyze_parser.add_argument("--validate-functions", action="store_true", 
                               help="関数の入出力検証も実行する")
+    analyze_parser.add_argument("--skip-quality-checks", action="store_true",
+                              help="品質チェック（ruff, mypy等）をスキップ")
     
     # validate コマンド
     validate_parser = subparsers.add_parser("validate", help="モジュールの関数を検証")
@@ -276,87 +344,92 @@ def main(args: Optional[List[str]] = None) -> int:
     if args.command == "analyze":
         path = args.path
         
-        # 分析の実行
-        if os.path.isfile(path):
-            results = analyze_file(
-                path,
-                max_lines=args.max_lines,
-                max_nest_level=args.max_nest
-            )
-            print(f"ファイル分析完了: {path}")
+        try:
+            # 分析の実行
+            if os.path.isfile(path):
+                results = analyze_file(
+                    path,
+                    max_lines=args.max_lines,
+                    max_nest_level=args.max_nest
+                )
+                print(f"ファイル分析完了: {path}")
+                
+            else:
+                # ディレクトリ分析の場合は並列処理を使用
+                analyzer = CodeAnalyzer(
+                    max_lines=args.max_lines,
+                    max_nest_level=args.max_nest,
+                    quality_checks=[] if args.skip_quality_checks else None
+                )
+                
+                results = analyzer.analyze_directory(
+                    path,
+                    patterns=args.patterns,
+                    recursive=args.recursive
+                )
+                print(f"ディレクトリ分析完了: {path}")
+                print(f"分析ファイル数: {results.get('file_count', 0)}")
             
-        else:
-            results = analyze_directory(
-                path,
-                patterns=args.patterns,
-                recursive=args.recursive,
-                max_lines=args.max_lines,
-                max_nest_level=args.max_nest
-            )
-            print(f"ディレクトリ分析完了: {path}")
-            print(f"分析ファイル数: {results.get('file_count', 0)}")
-        
-        # 関数検証（オプション）
-        validator_results = None
-        if args.validate_functions:
-            try:
+            # 関数検証（オプション）
+            validator_results = None
+            if args.validate_functions:
                 if os.path.isfile(path):
                     print(f"関数検証実行中: {path}")
                     validator_results = validate_functions(path)
                     print(f"関数検証完了")
                 else:
                     print("関数検証はディレクトリ全体ではなく、単一ファイルでのみサポートされています")
-            except Exception as e:
-                print(f"関数検証エラー: {str(e)}")
-        
-        # JSON結果の保存（オプション）
-        if args.output:
-            import json
-            # 関数検証結果を含むかどうか
-            save_data = results
+            
+            # JSON結果の保存（オプション）
+            if args.output:
+                save_data = results
+                if validator_results:
+                    save_data = {
+                        "code_analysis": results,
+                        "validator_results": validator_results
+                    }
+                
+                os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+                with open(args.output, 'w', encoding='utf-8') as f:
+                    json.dump(save_data, f, indent=2, ensure_ascii=False)
+                print(f"分析結果を保存しました: {args.output}")
+            
+            # レポートの生成（オプション）
+            if args.report:
+                os.makedirs(os.path.dirname(os.path.abspath(args.report)), exist_ok=True)
+                if validator_results:
+                    output_file = generate_enhanced_report(
+                        results, 
+                        validator_results, 
+                        args.report, 
+                        args.format
+                    )
+                else:
+                    output_file = save_report(results, args.report, args.format)
+                
+                print(f"レポートを生成しました: {output_file}")
+            
+            # サマリーを表示
+            if "summary" in results:
+                summary = results["summary"]
+                print("\n=== 分析サマリー ===")
+                print(f"複雑度の問題数: {summary.get('complexity_issues', 0)}")
+                print(f"問題のあるファイル数: {summary.get('files_with_issues', 0)}")
+                print(f"品質チェック: {'成功' if summary.get('quality_checks_passed', True) else '失敗'}")
+            
             if validator_results:
-                save_data = {
-                    "code_analysis": results,
-                    "validator_results": validator_results
-                }
+                stats = validator_results.get('stats', {})
+                print("\n=== 関数検証サマリー ===")
+                print(f"検証した関数数: {stats.get('function_count', 0)}")
+                print(f"問題のある関数数: {stats.get('function_with_issues', 0)}")
+                print(f"型ヒント不足: {stats.get('missing_type_hints', 0)}")
+                print(f"実行時エラー: {stats.get('runtime_errors', 0)}")
             
-            with open(args.output, 'w', encoding='utf-8') as f:
-                json.dump(save_data, f, indent=2, ensure_ascii=False)
-            print(f"分析結果を保存しました: {args.output}")
-        
-        # レポートの生成（オプション）
-        if args.report:
-            if validator_results:
-                # 統合レポートを生成
-                output_file = generate_enhanced_report(
-                    results, 
-                    validator_results, 
-                    args.report, 
-                    args.format
-                )
-            else:
-                # 通常のレポートを生成
-                output_file = save_report(results, args.report, args.format)
+            return 0
             
-            print(f"レポートを生成しました: {output_file}")
-            
-        # サマリーを表示
-        if "summary" in results:
-            summary = results["summary"]
-            print("\n=== 分析サマリー ===")
-            print(f"複雑度の問題数: {summary.get('complexity_issues', 0)}")
-            print(f"問題のあるファイル数: {summary.get('files_with_issues', 0)}")
-            print(f"品質チェック: {'成功' if summary.get('quality_checks_passed', True) else '失敗'}")
-        
-        if validator_results:
-            stats = validator_results.get('stats', {})
-            print("\n=== 関数検証サマリー ===")
-            print(f"検証した関数数: {stats.get('function_count', 0)}")
-            print(f"問題のある関数数: {stats.get('function_with_issues', 0)}")
-            print(f"型ヒント不足: {stats.get('missing_type_hints', 0)}")
-            print(f"実行時エラー: {stats.get('runtime_errors', 0)}")
-        
-        return 0
+        except Exception as e:
+            print(f"エラーが発生しました: {str(e)}", file=sys.stderr)
+            return 1
     
     elif args.command == "validate":
         path = args.path
@@ -424,12 +497,40 @@ def main(args: Optional[List[str]] = None) -> int:
         
         return 0
     
-    elif args.command in ["report", "check"]:
-        # 既存のコマンドを実行するためのインポート
-        from .cli import main as original_main
+    elif args.command == "report":
+        # 既存の分析結果からレポートを生成
+        with open(args.results, 'r', encoding='utf-8') as f:
+            print(f"レポートを生成しました: {args.results}")
+            results = json.load(f)
         
-        # 元のCLI処理に委譲
-        return original_main(sys.argv[1:])
+        output_file = save_report(results, args.output, args.format)
+        print(f"レポートを生成しました: {output_file}")
+        return 0
+        
+    elif args.command == "check":
+        # シンプルな品質チェックを実行
+        path = args.path
+        if os.path.isfile(path):
+            results = analyze_file(path)
+            print(f"ファイルチェック完了: {path}")
+        else:
+            analyzer = CodeAnalyzer()
+            results = analyzer.analyze_directory(
+                path,
+                patterns=args.patterns,
+                recursive=args.recursive
+            )
+            print(f"ディレクトリチェック完了: {path}")
+        
+        # 結果の表示
+        if "summary" in results:
+            summary = results["summary"]
+            print("\n=== チェックサマリー ===")
+            print(f"複雑度の問題数: {summary.get('complexity_issues', 0)}")
+            print(f"問題のあるファイル数: {summary.get('files_with_issues', 0)}")
+            print(f"品質チェック: {'成功' if summary.get('quality_checks_passed', True) else '失敗'}")
+        
+        return 0 if results.get("quality_summary", {}).get("passed", True) else 1
     
     else:
         # コマンドが指定されていない場合

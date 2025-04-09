@@ -10,13 +10,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple, Optional, Union
 import datetime
 import json
+import concurrent.futures
+from tqdm import tqdm
 
 # 既存のツールをインポート
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from scripts.analyze_python_files import analyze_python_file, find_usages, collect_function_calls
-from scripts.code_complexity_checker import CodeComplexityChecker
+from ..scripts.analyze_python_files import analyze_python_file, find_usages, collect_function_calls
+from ..scripts.code_complexity_checker import CodeComplexityChecker
 try:
-    from scripts.check_code_quality import run_check
+    from ..scripts.check_code_quality import run_check
 except ImportError:
     # check_code_quality.py が存在しない場合のフォールバック
     def run_check(command, description):
@@ -38,7 +39,7 @@ except ImportError:
 
 # ファイル操作ユーティリティをインポート
 try:
-    from scripts.save_file_structure import get_ignored_patterns, should_include
+    from ..scripts.save_file_structure import get_ignored_patterns, should_include
 except ImportError:
     # フォールバック実装
     def get_ignored_patterns():
@@ -74,7 +75,8 @@ class CodeAnalyzer:
     def __init__(self, 
                  max_lines: int = 100, 
                  max_nest_level: int = 4,
-                 quality_checks: Optional[List[Tuple[List[str], str]]] = None):
+                 quality_checks: Optional[List[Tuple[List[str], str]]] = None,
+                 max_workers: Optional[int] = None):
         """
         統合コード分析ツールを初期化
         
@@ -83,9 +85,11 @@ class CodeAnalyzer:
             max_nest_level: 最大ネストレベルの閾値
             quality_checks: 追加の品質チェック (コマンドとその説明のタプルのリスト)
                            例: [(["ruff", "check", "."], "Ruffによるコードチェック")]
+            max_workers: 並列処理の最大ワーカー数（Noneの場合はCPUコア数）
         """
         self.max_lines = max_lines
         self.max_nest_level = max_nest_level
+        self.max_workers = max_workers
         
         # デフォルトの品質チェック
         self.quality_checks = quality_checks or [
@@ -208,7 +212,7 @@ class CodeAnalyzer:
         # 重複を排除
         py_files = sorted(set(py_files))
         
-        # 各ファイルを分析
+        # 分析結果の初期化
         directory_result = {
             "directory": directory,
             "timestamp": datetime.datetime.now().isoformat(),
@@ -217,9 +221,27 @@ class CodeAnalyzer:
             "quality_summary": {"passed": True, "issues": []}
         }
         
-        for file_path in py_files:
-            file_result = self.analyze_file(file_path)
-            directory_result["files"][file_path] = file_result
+        # 並列処理で各ファイルを分析
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_file = {
+                executor.submit(self.analyze_file, file_path): file_path 
+                for file_path in py_files
+            }
+            
+            with tqdm(total=len(py_files), desc="Analyzing files") as pbar:
+                for future in concurrent.futures.as_completed(future_to_file):
+                    file_path = future_to_file[future]
+                    try:
+                        file_result = future.result()
+                        directory_result["files"][file_path] = file_result
+                    except Exception as e:
+                        print(f"Error analyzing {file_path}: {str(e)}")
+                        directory_result["files"][file_path] = {
+                            "error": str(e),
+                            "file_path": file_path
+                        }
+                    finally:
+                        pbar.update(1)
         
         # ディレクトリ全体の品質チェック
         for command, description in self.quality_checks:

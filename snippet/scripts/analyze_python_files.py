@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple
 
-from save_file_structure import get_ignored_patterns, should_include
+from .save_file_structure import get_ignored_patterns, should_include
 
 
 def find_usages(node: ast.AST, target_names: Set[str]) -> Set[str]:
