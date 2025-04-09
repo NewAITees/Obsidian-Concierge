@@ -20,6 +20,12 @@ repo = ChromaRepository(collection_name="obsidian_vault")
 search_service = SearchService(repo)
 qa_service = QAService(repo)
 
+# Health check endpoint
+@router.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy"}
+
 class SearchRequest(BaseModel):
     """Search request model."""
     query: str = Field(..., description="Search query string")

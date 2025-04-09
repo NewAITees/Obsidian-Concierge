@@ -8,6 +8,9 @@ and includes all API routes.
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 
 from .utils.config import AppConfig, load_config
 from .utils.logging import LogConfig, setup_logging
@@ -39,15 +42,22 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# Mount static files
+static_dir = Path(__file__).parent / "static"
+static_dir.mkdir(parents=True, exist_ok=True)  # 静的ファイルディレクトリを作成
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy"}
-
+# Root endpoint to serve index.html
+@app.get("/")
+async def root():
+    """Serve the main application page."""
+    index_path = static_dir / "index.html"
+    if not index_path.exists():
+        return {"message": "Welcome to Obsidian Concierge API"}
+    return FileResponse(index_path)
 
 def start():
     """Start the application server."""
@@ -57,7 +67,6 @@ def start():
         port=config.PORT,
         reload=True  # Enable auto-reload during development
     )
-
 
 if __name__ == "__main__":
     start() 
