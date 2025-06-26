@@ -1,0 +1,27 @@
+services:
+  obsidian-concierge:
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./test_vault:/app/vault
+    environment:
+      - PYTHONUNBUFFERED=1
+      - VAULT_PATH=/app/vault
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+volumes:
+  ollama_data:

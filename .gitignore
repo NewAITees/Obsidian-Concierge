@@ -217,5 +217,6 @@ tmp/
 .obsidian/
 .trash/
 
-
+uv.lock
+poetry.lock
 test_vault/
