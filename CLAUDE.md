@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Obsidian Concierge 開発ガイド
 
 ## プロジェクト概要
@@ -35,14 +39,14 @@ Obsidian ConciergeはObsidianユーザーのためのLLMベースの知識管理
 - 全工程でpre-commit自動実行
 
 ## 技術スタック
-- **フロントエンド**: React + TypeScript（計画中）
 - **バックエンド**: Python 3.12+, FastAPI, uvicorn
 - **ベクトルDB**: ChromaDB（セマンティック検索）
 - **LLM**: Ollama with gemma3:27b
 - **パッケージ管理**: uv（高速パッケージマネージャー）
 - **コード品質**: ruff（高速統合ツール）
 - **テスト**: pytest（非同期対応）
-- **CLI**: httpx, rich（非同期HTTP + ターミナルUI）
+- **CLI**: Click, httpx, rich（非同期HTTP + ターミナルUI）
+- **Web UI**: 静的HTML/CSS/JS（FastAPI経由配信）
 
 ## ドメイン知識
 
@@ -125,6 +129,13 @@ uv run python -m obsidian_concierge.cli ask "これは何について？"
 # ノートとタグ管理
 uv run python -m obsidian_concierge.cli note create "タイトル" "内容"
 uv run python -m obsidian_concierge.cli tag list
+
+# 新機能（計画済み）
+uv run python -m obsidian_concierge.cli tag generate "ファイル名"  # TF-IDFタグ生成
+uv run python -m obsidian_concierge.cli link generate "ファイル名"  # 関連リンク生成
+uv run python -m obsidian_concierge.cli journal create  # 日記テンプレート作成
+uv run python -m obsidian_concierge.cli moc create "フォルダ名"  # MOC生成
+uv run python -m obsidian_concierge.cli script run "スクリプト名.py"  # スクリプト実行
 ```
 
 ## アーキテクチャ
@@ -199,3 +210,18 @@ uv run python -m obsidian_concierge.cli tag list
 ## 拡張ツール
 
 `snippet/` ディレクトリには、コード品質チェックと検証のための独自CLI インターフェースを持つ追加のコード分析ツールが含まれています。
+
+## 開発対象機能（今後実装予定）
+
+### 高度な機能
+- **TF-IDFタグ生成**: 文書の特徴語を自動抽出してタグ化
+- **ベクトル類似度リンク生成**: 文書間の意味的類似性に基づくリンク作成
+- **日記テンプレート機能**: 日付ベースの日記テンプレート自動生成
+- **スクリプト実行機能**: Obsidianフォルダ内のPythonスクリプト実行
+- **高度なMOC生成**: 階層構造を意識したMOC（Map of Contents）生成
+
+### 実装時の注意点
+- 全ての処理はローカル環境で完結（外部API不使用）
+- Obsidian特有のマークダウン機能（frontmatter、wikilinks）を適切に処理
+- インクリメンタル更新をサポート
+- ユーザー承認プロセスを含む自動化機能の実装
